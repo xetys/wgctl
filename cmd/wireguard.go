@@ -21,24 +21,48 @@ func GenerateKeyPairs(node clustermanager.Node, count int) []clustermanager.WgKe
 	return keyPairs
 }
 
-func GenerateWireguardConf(node clustermanager.Node, nodes []clustermanager.Node) string {
-	var output string
-	// print header block
+func GenerateWireguardConf(node clustermanager.Node, nodes []clustermanager.Node, clients []Client) string {
 	headerTpl := `[Interface]
 Address = %s
 PrivateKey = %s
 ListenPort = 51820
 `
+	// print header block
+	output := fmt.Sprintf(headerTpl, node.PrivateIPAddress, node.WireGuardKeyPair.Private)
+
+	// peer positions
+	output = fmt.Sprintf("%s\n%s", output, renderPeerConfigs(nodes, &node, clients))
+
+	return output
+}
+
+func GenerateClientConf(client Client, nodes []clustermanager.Node) string {
+	headerTpl := `[Interface]
+Address = %s
+PrivateKey = %s
+`
+	// print header block
+	output := fmt.Sprintf(headerTpl, client.Address, client.KeyPair.Private)
+
+	// peer positions
+	output = fmt.Sprintf("%s\n%s", output, renderPeerConfigs(nodes, nil, nil))
+
+	return output
+}
+func renderPeerConfigs(nodes []clustermanager.Node, excludeNode *clustermanager.Node, clients []Client) string {
 	peerTpl := `# %s
 [Peer]
 PublicKey = %s
 AllowedIps = %s/32
 Endpoint = %s:51820
 `
-	output = fmt.Sprintf(headerTpl, node.PrivateIPAddress, node.WireGuardKeyPair.Private)
-
+	clientTpl := `[Peer]
+PublicKey = %s
+AllowedIps = %s
+`
+	var output string
 	for _, peer := range nodes {
-		if peer.Name == node.Name {
+		if excludeNode != nil && peer.Name == excludeNode.Name {
 			continue
 		}
 
@@ -48,29 +72,38 @@ Endpoint = %s:51820
 		)
 	}
 
+	for _, client := range clients {
+		output = fmt.Sprintf("%s\n%s",
+			output,
+			fmt.Sprintf(clientTpl, client.KeyPair.Public, client.CIDR),
+		)
+	}
 	return output
 }
 
 func (config *Config) SetupEncryptedNetwork(configNumber int, dryRun bool) error {
-	nodes := config.Nodes
 	// render a public/private key pair
-	keyPairs := GenerateKeyPairs(nodes[0], len(nodes))
+	clients := config.Clients
+	lenNodes := len(config.Nodes)
+	keyPairs := GenerateKeyPairs(config.Nodes[0], lenNodes+len(clients))
 
 	for i, keyPair := range keyPairs {
-		config.Nodes[i].WireGuardKeyPair = keyPair
+		if i < lenNodes {
+			config.Nodes[i].WireGuardKeyPair = keyPair
+		} else {
+			config.Clients[i-lenNodes].KeyPair = keyPair
+		}
 	}
-
-	nodes = config.Nodes
 
 	// for each node, get specific IP and install it on node
 	errChan := make(chan error)
 	trueChan := make(chan bool)
 	numProc := 0
-	for _, node := range nodes {
+	for _, node := range config.Nodes {
 		numProc++
 		go func(node clustermanager.Node) {
 			fmt.Println(node.Name, "configure wireguard")
-			wireGuardConf := GenerateWireguardConf(node, config.Nodes)
+			wireGuardConf := GenerateWireguardConf(node, config.Nodes, config.Clients)
 			configPath := fmt.Sprintf("/etc/wireguard/wg%d.conf", configNumber)
 			if !dryRun {
 				err := wgContext.SSH().WriteFile(node, configPath, wireGuardConf, false)

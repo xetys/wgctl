@@ -16,32 +16,16 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"errors"
 )
 
-// doCmd represents the do command
-var doCmd = &cobra.Command{
-	Use:   "do",
-	Short: "Executes the config to your nodes. Add -d or --dry-run if you want to check the configs before",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if !wgContext.IsConfigLoaded() {
-			return errors.New("you must be inside a config directory")
-		}
-
-		if len(wgContext.Config.Nodes) == 0 {
-			return errors.New("you must add at least one node")
-		}
-
-		return nil
-	},
+// clientCmd represents the client command
+var clientCmd = &cobra.Command{
+	Use:   "client",
 	Run: func(cmd *cobra.Command, args []string) {
-		dryRun, _ := cmd.Flags().GetBool("dry-run")
-		wgContext.Config.SetupEncryptedNetwork(0, dryRun)
-		wgContext.SaveConfig()
+		cmd.Usage()
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(doCmd)
-	doCmd.Flags().BoolP("dry-run", "d", false, "if true, wgctl only prints the distinct configs")
+	rootCmd.AddCommand(clientCmd)
 }

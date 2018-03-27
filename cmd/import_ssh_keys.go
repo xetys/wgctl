@@ -28,13 +28,7 @@ import (
 // importSshKeysCmd represents the importSshKeys command
 var importSshKeysCmd = &cobra.Command{
 	Use:   "import-ssh-keys",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Imports local ssh keys from ~/.ssh",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		if !wgContext.IsConfigLoaded() {
 			return errors.New("you must be inside a config directory")
@@ -75,14 +69,4 @@ to quickly create a Cobra application.`,
 
 func init() {
 	rootCmd.AddCommand(importSshKeysCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// importSshKeysCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// importSshKeysCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

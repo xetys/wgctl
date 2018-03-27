@@ -18,14 +18,13 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"strings"
 	"errors"
 )
 
-// installCmd represents the install command
-var installCmd = &cobra.Command{
-	Use:   "install",
-	Short: "Given the target node is ubuntu based, it installs wireguard",
+// clientAddCmd represents the clientAdd command
+var clientAddCmd = &cobra.Command{
+	Use:   "add NAME ADDRESS ADDRESS_SPACE",
+	Short: "Adds a new remote client",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		if !wgContext.IsConfigLoaded() {
 			return errors.New("you must be inside a config directory")
@@ -33,28 +32,34 @@ var installCmd = &cobra.Command{
 
 		return nil
 	},
+	Args: cobra.ExactArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("clientAdd called")
+		name := args[0]
+		address := args[1]
+		cidr := args[2]
+		newClient := Client{
+			Name:    name,
+			Address: address,
+			CIDR:    cidr,
+		}
 
-		for _, node := range wgContext.Config.Nodes {
-			out, err := wgContext.SSH().RunCmd(node, "type -p wg > /dev/null &> /dev/null; echo $?")
-			FatalOnError(err)
-			out = strings.TrimSpace(out)
-			installed := out == "0"
+		for idx, client := range wgContext.Config.Clients {
+			if client.Name == name {
+				wgContext.Config.Clients[idx] = newClient
 
-			if !installed {
-				fmt.Printf("installing wireguard on node %s\n", node.Name)
-				_, err = wgContext.SSH().RunCmd(node, "add-apt-repository ppa:wireguard/wireguard -y")
-				FatalOnError(err)
-				_, err = wgContext.SSH().RunCmd(node, "apt-get update && apt-get install -y wireguard linux-headers-$(uname -r) linux-headers-virtual")
-				FatalOnError(err)
-				fmt.Println("wireguard installed!")
-			} else {
-				fmt.Println("wireguard already exist")
+				wgContext.SaveConfig()
+				fmt.Println("client updated")
+				return
 			}
 		}
+
+		wgContext.Config.Clients = append(wgContext.Config.Clients, newClient)
+		wgContext.SaveConfig()
+		fmt.Println("client added")
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(installCmd)
+	clientCmd.AddCommand(clientAddCmd)
 }

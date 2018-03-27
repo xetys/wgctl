@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"os"
 
-	homedir "github.com/mitchellh/go-homedir"
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -29,13 +29,37 @@ var wgContext *WgCtlContext
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "wgctl",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
+	Short: "A small tool for managing wireguard VPN",
+	Long: `This tool enables management of remote wireguard setups.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+Here is a quick explanation:
+
+	# wgctl new my-servers
+	-> this will create a new folder in the current directory and place a config.json with a name for usage. You must enter the folder for all further actions
+	# cd my-servers
+	# wgctl import-ssh-keys
+	-> this will import your ssh keys for connecting the nodes
+	# wgctl add 42.42.42.1 10.0.0.1 id_rsa
+	# wgctl add 42.42.42.2 10.0.0.2 id_rsa
+	# wgctl add 42.42.42.3 10.0.0.3 id_rsa
+	-> this will add three nodes you are going to manage
+	# wgctl install
+	-> this step ensures your nodes will have wireguard install
+	# wgctl do -d
+	-> take a look into the configurations if you want
+	# wgctl do
+	-> setup the network
+
+With these steps your servers should be connected. Now you could add an client config:
+	# wgctl client add me 10.0.1.1 10.0.1.0/24
+	-> adding a client 'me' to your list
+	# wgctl do
+	-> You must run this, to generate a certificate!
+	# wgctl client gen-config me > wgme.conf
+	-> generates a config for a client. You can share this one!
+	# wg-quick up ./wgme.conf
+	-> connect to the VPN
+`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	//	Run: func(cmd *cobra.Command, args []string) { },
@@ -64,14 +88,10 @@ func init() {
 
 	wgContext = &WgCtlContext{}
 
-	loaded, err := wgContext.LoadFromLocalDir()
+	_, err := wgContext.LoadFromLocalDir()
 
 	if err != nil {
 		panic(err)
-	}
-
-	if loaded {
-		fmt.Println("loaded config")
 	}
 }
 

@@ -26,13 +26,7 @@ import (
 // infoCmd represents the info command
 var infoCmd = &cobra.Command{
 	Use:   "info",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Prints out the current configuration",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		if !wgContext.IsConfigLoaded() {
 			return errors.New("you must be inside a config directory")
@@ -52,9 +46,19 @@ to quickly create a Cobra application.`,
 			fmt.Fprintf(tw,"%s\t%s\t%s\t%s\t", node.Name, node.IPAddress, node.PrivateIPAddress, node.SSHKeyName)
 			fmt.Fprintln(tw)
 		}
-
 		tw.Flush()
 		fmt.Println()
+
+		fmt.Println("CLIENTS: ")
+		tw.Init(os.Stdout, 0, 8, 0, '\t', 0)
+		fmt.Fprintln(tw, "NAME\tADDRESS\tADDRESS SPACE\t")
+		for _, client := range wgContext.Config.Clients {
+			fmt.Fprintf(tw,"%s\t%s\t%s\t", client.Name, client.Address, client.CIDR)
+			fmt.Fprintln(tw)
+		}
+		tw.Flush()
+		fmt.Println()
+
 		fmt.Println("SSH KEYS: ")
 		for _, sshKey := range wgContext.Config.SSHKeys {
 			fmt.Println("- " + sshKey.Name)
@@ -64,14 +68,4 @@ to quickly create a Cobra application.`,
 
 func init() {
 	rootCmd.AddCommand(infoCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// infoCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// infoCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

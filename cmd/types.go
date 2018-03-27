@@ -11,17 +11,20 @@ import (
 
 type WgCtlContext struct {
 	Config *Config
-	ssh *clustermanager.SSHCommunicator
+	ssh    *clustermanager.SSHCommunicator
 }
 
 type Config struct {
-	Name string `json:"name"`
-	Nodes []clustermanager.Node `json:"nodes"`
-	SSHKeys []clustermanager.SSHKey
+	Name    string                  `json:"name"`
+	Nodes   []clustermanager.Node   `json:"nodes"`
+	Clients []Client                `json:"clients"`
+	SSHKeys []clustermanager.SSHKey `json:"ssh_keys"`
 }
 
 type Client struct {
+	Name    string                   `json:"name"`
 	Address string                   `json:"address"`
+	CIDR    string                   `json:"cidr"`
 	KeyPair clustermanager.WgKeyPair `json:"key_pair"`
 }
 
@@ -42,7 +45,6 @@ func (ctx *WgCtlContext) LoadFromLocalDir() (bool, error) {
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		return false, nil
 	}
-
 
 	configBytes, err := ioutil.ReadFile(configPath)
 	if err != nil {
