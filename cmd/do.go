@@ -36,7 +36,8 @@ var doCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
-		wgContext.Config.SetupEncryptedNetwork(0, dryRun)
+		ifaceNumber, _ := cmd.Flags().GetInt("iface-number")
+		wgContext.Config.SetupEncryptedNetwork(ifaceNumber, dryRun)
 		wgContext.SaveConfig()
 	},
 }
@@ -44,4 +45,5 @@ var doCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(doCmd)
 	doCmd.Flags().BoolP("dry-run", "d", false, "if true, wgctl only prints the distinct configs")
+	doCmd.Flags().IntP("iface-number", "i", 0, "number of the interface. Will generate a wg0.conf, wg1.conf, ...")
 }
