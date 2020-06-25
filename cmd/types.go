@@ -1,12 +1,12 @@
 package cmd
 
 import (
-	"github.com/xetys/hetzner-kube/pkg/clustermanager"
-	"os"
-	"path/filepath"
-	"io/ioutil"
 	"encoding/json"
 	"errors"
+	"github.com/xetys/hetzner-kube/pkg/clustermanager"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 )
 
 type WgCtlContext struct {
@@ -94,7 +94,7 @@ func (ctx *WgCtlContext) SSH() *clustermanager.SSHCommunicator {
 	}
 
 	if ctx.ssh == nil {
-		ctx.ssh = clustermanager.NewSSHCommunicator(ctx.Config.SSHKeys).(*clustermanager.SSHCommunicator)
+		ctx.ssh = clustermanager.NewSSHCommunicator(ctx.Config.SSHKeys, false).(*clustermanager.SSHCommunicator)
 	}
 
 	return ctx.ssh

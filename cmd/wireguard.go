@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/xetys/hetzner-kube/pkg/clustermanager"
-	"encoding/json"
 )
 
 func GenerateKeyPairs(node clustermanager.Node, count int) []clustermanager.WgKeyPair {
@@ -95,6 +95,17 @@ func (config *Config) SetupEncryptedNetwork(configNumber int, dryRun bool) error
 		}
 	}
 
+	capturedKeys := make(map[string]bool)
+	// capture keyphrases if needed
+	for _, node := range config.Nodes {
+		keyName := node.SSHKeyName
+		if _, found := capturedKeys[keyName]; !found {
+			err := wgContext.ssh.CapturePassphrase(keyName)
+			FatalOnError(err)
+			capturedKeys[keyName] = true
+		}
+	}
+
 	// for each node, get specific IP and install it on node
 	errChan := make(chan error)
 	trueChan := make(chan bool)
@@ -106,11 +117,13 @@ func (config *Config) SetupEncryptedNetwork(configNumber int, dryRun bool) error
 			wireGuardConf := GenerateWireguardConf(node, config.Nodes, config.Clients)
 			configPath := fmt.Sprintf("/etc/wireguard/wg%d.conf", configNumber)
 			if !dryRun {
-				err := wgContext.SSH().WriteFile(node, configPath, wireGuardConf, false)
+
+				err := wgContext.SSH().WriteFile(node, configPath, wireGuardConf, clustermanager.AllRead)
 				if err != nil {
 					errChan <- err
 				}
 
+				fmt.Println(node.Name, "copy files")
 				systemctlCommand := fmt.Sprintf("systemctl enable wg-quick@wg%d && systemctl restart wg-quick@wg%d", configNumber, configNumber)
 				_, err = wgContext.SSH().RunCmd(node, systemctlCommand)
 
@@ -127,6 +140,9 @@ func (config *Config) SetupEncryptedNetwork(configNumber int, dryRun bool) error
 		}(node)
 	}
 
-	waitOrError(trueChan, errChan, &numProc)
-	return nil
+	err := waitOrError(trueChan, errChan, &numProc)
+	if err != nil {
+		fmt.Printf("the following error occured %v", err)
+	}
+	return err
 }

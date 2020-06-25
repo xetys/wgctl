@@ -15,8 +15,8 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"errors"
+	"github.com/spf13/cobra"
 )
 
 // doCmd represents the do command
@@ -37,8 +37,10 @@ var doCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 		ifaceNumber, _ := cmd.Flags().GetInt("iface-number")
-		wgContext.Config.SetupEncryptedNetwork(ifaceNumber, dryRun)
-		wgContext.SaveConfig()
+		err := wgContext.Config.SetupEncryptedNetwork(ifaceNumber, dryRun)
+		FatalOnError(err)
+		err = wgContext.SaveConfig()
+		FatalOnError(err)
 	},
 }
 
